@@ -1,0 +1,10 @@
+convertdate
+numpy==1.22
+pandas==1.4.2
+matplotlib==3.4.3
+scipy==1.8.1
+pyfftw==0.13.0
+sktime==0.11.4
+sktime[all_extras]==0.11.4
+torch==1.21.0
+torchvision
