@@ -5,7 +5,7 @@ import torch
 
 
 class NCFA:
-    """Neighbourhood Components Analysis [1].
+    """Based on Neighbourhood Components Analysis [1].
 
     References:
       [1]: https://www.cs.toronto.edu/~hinton/absps/nca.pdf
@@ -35,8 +35,6 @@ class NCFA:
         self.init = init
         self.max_iters = max_iters
         self.tol = tol
-        self._mean = None
-        self._stddev = None
         self._losses = None
         self.device = device
         self.loss_func_name = loss_func_name
@@ -56,17 +54,8 @@ class NCFA:
         """Apply the learned linear map to the input.
         """
         with torch.no_grad():
-            if self._mean is not None and self._stddev is not None:
-                X = (X - self._mean) / self._stddev
             # return torch.mm(X, torch.t(self.A))
             return torch.mm(X, torch.t(self.bsf_A))
-
-    def predict_prob(self, X):
-        """Apply the learned linear map to the input.
-        """
-        if self._mean is not None and self._stddev is not None:
-            X = (X - self._mean) / self._stddev
-        return torch.mm(X, torch.t(self.A))
 
     def _init_transformation(self):
         """Initialize the linear transformation A.
@@ -74,8 +63,8 @@ class NCFA:
         if self.dim is None:
             self.dim = self.num_dims
         if self.init == "random":
-            print('using random init')
-            a = torch.randn(self.dim, self.num_dims, device=self.device) * 0.01
+            # print('using random init')
+            a = torch.randn(self.dim, self.num_dims, dtype=torch.double, device=self.device) * 0.1
             self.A = torch.nn.Parameter(a)
         elif self.init == "identity":
             a = torch.eye(self.dim, self.num_dims, dtype=torch.double, device=self.device)
@@ -90,11 +79,6 @@ class NCFA:
         dot = torch.mm(x.double(), torch.t(x.double()))
         norm_sq = torch.diag(dot)
         dist = norm_sq[None, :] - 2*dot + norm_sq[:, None]
-        # dist = torch.clamp(dist, min=0)  # replace negative values with 0
-        # I = torch.eye(dot.shape[0], dtype=torch.double, device=f"cuda:{dot.get_device()}")
-        # I = torch.eye(dot.shape[0], dtype=torch.double, device=f"cpu")
-        # dist = torch.sqrt(dist+I)
-        # dist = dist - I
         dist = torch.clamp(dist, min=0)
         return dist.double()
 
@@ -106,69 +90,21 @@ class NCFA:
     @staticmethod
     def _softmax(x, norm, deduction_max):
         """Compute row-wise softmax.
-
-        Notes:
-          Since the input to this softmax is the negative of the
-          pairwise L2 distances, we don't need to do the classical
-          numerical stability trick.
         """
         if norm:
             m = x.mean(dim=1).reshape([x.shape[0], -1])
             stddev = x.std(unbiased=False, dim=1).reshape([x.shape[0], -1])
             x = (x - m) / stddev
-            # m = x.mean(dim=0).reshape([-1, x.shape[0]])
-            # stddev = x.std(unbiased=False, dim=0).reshape([-1, x.shape[0]])
-            # x = (x - m) / stddev
 
         exp = torch.exp(x)
         s = exp.sum(dim=1).reshape([exp.shape[0],-1])
         return exp / s
 
     @property
-    def mean(self):
-        if self._mean is None:
-            raise ValueError('No mean was computed. Make sure normalize is set to True.')
-        return self._mean
-
-    @property
-    def stddev(self):
-        if self._stddev is None:
-            raise ValueError('No stddev was computed. Make sure normalize is set to True.')
-        return self._stddev
-
-    @property
     def losses(self):
         if self._losses is None:
             raise ValueError('There are no losses to report. You must call train first.')
         return self._losses
-
-    def F1_loss(self, X, y_mask, true_labels, softmax_norm, softmax_de_max, softmax_neg_dist, dist_func):
-        embedding = torch.mm(X, torch.t(self.A))
-        if dist_func == "L2":
-            distances = self._pairwise_l2_sq(embedding)
-        elif dist_func == "PCorr":
-            distances = self._p_corr(embedding)
-
-        if softmax_neg_dist:
-            p_ij = self._softmax(-distances, softmax_norm, softmax_de_max)
-        else:
-            p_ij = self._softmax(distances, softmax_norm, softmax_de_max)
-        p_ij_mask = p_ij * y_mask.double()
-        p_ij_diag = torch.diag(p_ij_mask)
-        p_i = p_ij_mask.sum(dim=1)
-        p_i = p_i - p_ij_diag
-
-        true_labels_flip = 1-true_labels
-        p_i_flip = 1 - p_i
-        tp = (p_i * true_labels).sum()
-        tn = (p_i * true_labels_flip).sum()
-        fn = (p_i_flip * true_labels).sum()
-        fp = (p_i_flip * true_labels_flip).sum()
-
-        recall = tp / (tp + fn)
-        precision = tp / (tp + fp)
-        f1_loss = -(2 * precision * recall) / (precision + recall)
-        return f1_loss
 
     def Focal_loss(self, X, y_mask, softmax_norm, softmax_de_max, alpha, gamma, softmax_neg_dist, dist_func):
         embedding = torch.mm(X, torch.t(self.A))
@@ -185,9 +121,6 @@ class NCFA:
         p_ij_diag = torch.diag(p_ij_mask)
         p_i = p_ij_mask.sum(dim=1)
         p_i = p_i - p_ij_diag
-        # p_i_non_zero = torch.masked_select(p_i, p_i != 0)
-        # tmp =  torch.pow((1-p_i_non_zero), gamma)
-        # tmp2 = torch.log(p_i_non_zero)
 
         tmp =  torch.pow((1-p_i), gamma)
         tmp2 = torch.log(p_i)
@@ -231,23 +164,6 @@ class NCFA:
         embedding = torch.mm(X, torch.t(self.A))
         distances = self._pairwise_l2_sq(embedding)
 
-        'Modified by Sheng'
-        # m = distances.mean(dim=1).reshape([distances.shape[0], -1])
-        # stddev = distances.std(unbiased=False, dim=1).reshape([distances.shape[0], -1])
-        # distances = (distances - m) / stddev
-
-        # fill diagonal values such that exponentiating them
-        # makes them equal to 0
-        # distances.diagonal().copy_(np.inf*torch.ones(len(distances)))
-
-        # compute pairwise probability matrix p_ij
-        # defined by a softmax over negative squared
-        # distances in the transformed space.
-        # since we are dealing with negative values
-        # with the largest value being 0, we need
-        # not worry about numerical instabilities
-        # in the softmax function
-        'Modified by Sheng'
         # p_ij = self._softmax(-distances)
         p_ij = self._softmax(distances)
         # p_ij.diagonal().copy_(torch.zeros(len(distances)))
@@ -271,7 +187,6 @@ class NCFA:
         # to prevent the embeddings of different
         # classes from collapsing to the same
         # point, we add a hinge loss penalty
-        'Modified by Sheng'
         # distances.diagonal().copy_(torch.zeros(len(distances)))
         margin_diff = (1 - distances) * (~y_mask).double()
         hinge_loss = torch.clamp(margin_diff, min=0).pow(2).sum(1).mean()
@@ -291,11 +206,6 @@ class NCFA:
     ):
         """Trains NCA until convergence.
 
-        Specifically, we maximize the expected number of points
-        correctly classified under a stochastic selection rule.
-        This rule is defined using a softmax over Euclidean distances
-        in the transformed space.
-
         Args:
           X (torch.FloatTensor): The dataset of shape (N, D) where
             `D` is the dimension of the feature space and `N`
@@ -306,9 +216,6 @@ class NCFA:
           lr (float): The learning rate.
           weight_decay (float): The strength of the L2 regularization
             on the learned transformation A.
-          normalize (bool): Whether to whiten the input, i.e. to
-            subtract the feature-wise mean and divide by the
-            feature-wise standard deviation.
         """
         self._losses = []
         self.num_train, self.num_dims = X.shape
@@ -319,12 +226,6 @@ class NCFA:
 
         # initialize the linear transformation matrix A
         self._init_transformation()
-
-        # # zero-mean the input data
-        # if normalize:
-        #     self._mean = X.mean(dim=1).reshape([X.shape[0], 1])
-        #     self._stddev = X.std(unbiased=False, dim=1).reshape([X.shape[0], 1])
-        #     X = (X - self._mean) / self._stddev
 
         if self.optimizer_name == "SGD":
             optim_args = {
@@ -366,7 +267,6 @@ class NCFA:
                     w_batch = weight[i*batch_size:(i+1)*batch_size]
                 # compute pairwise boolean class matrix
                 y_mask = y_batch[:, None] == y_batch[None, :]
-                'modified by Sheng'
                 # compute loss and take gradient step
                 optimizer.zero_grad()
                 if self.loss_func_name == 'CE':
@@ -405,12 +305,6 @@ class NCFA:
                     k = self.loss_args.get("k")
                     loss = self.Focal_loss_k(k, X_batch, y_mask, softmax_norm, softmax_de_max,
                                            alpha, gamma, self.loss_args.get("softmax_neg_dist"), dist_func)
-                elif self.loss_func_name == "F1":
-                    softmax_norm = self.loss_args.get("softmax_norm")
-                    softmax_de_max = self.loss_args.get("softmax_de_max")
-                    dist_func = self.loss_args.get("dist_func")
-                    loss = self.F1_loss(X_batch, y_mask, y.double(), softmax_norm, softmax_de_max,
-                                        self.loss_args.get("softmax_neg_dist"), dist_func)
 
                 self._losses.append(loss.item())
                 if self.bsf_loss is None or loss.item() < self.bsf_loss:
@@ -424,13 +318,6 @@ class NCFA:
                     if not i_global % 10:
                         print("epoch: {} - loss: {:.5f}".format(epoch+1, loss.item()))
 
-            # check if within convergence
-            # A_curr = optimizer.param_groups[0]['params'][0]
-            # if torch.all(torch.abs(A_prev - A_curr) <= self.tol):
-            #     print("[*] Optimization has converged in {} mini batch iterations.".format(i_global))
-            #     print("epoch: {} - loss: {:.5f}".format(epoch + 1, loss.item()))
-            #     break
-        # print()
     def compute_alpha(self, y):
         num_positive = y.sum()
         num_negative = len(y) - num_positive

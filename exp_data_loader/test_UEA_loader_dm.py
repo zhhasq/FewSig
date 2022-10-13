@@ -1,12 +1,12 @@
 import os
 
-from exp_data_loader.UAE_loader import UAEUtils
+from exp_data_loader.UEA_loader import UEAUtils
 from tqdm import tqdm
 
 if __name__ == "__main__":
     select_name = []
     # select_warp = []
-    with open(os.path.join(os.getcwd(), "exp_data", "UAE_select2.txt"), 'r') as f:
+    with open(os.path.join(os.getcwd(), "exp_data", "UEA_select2.txt"), 'r') as f:
         lines = f.readlines()
     for cur_line in lines:
         if "%" in cur_line:
@@ -29,7 +29,7 @@ if __name__ == "__main__":
     dist_code_list.append(f"E-Q100-S100")
     for name in tqdm(select_name):
         print(name)
-        cur_data = UAEUtils.get_UAE_data(name)
+        cur_data = UEAUtils.get_UEA_data(name)
         if cur_data is None:
             continue
         select_data.append(cur_data)

@@ -6,7 +6,7 @@ from exp_model_comparsion.online_exp import OnlineExp
 
 select_name = []
 # select_warp = []
-with open(os.path.join(os.getcwd(), "exp_data", "../resources/paper_all.txt"), 'r') as f:
+with open(os.path.join(os.getcwd(), "exp_data", "../resources/UEA_select.txt"), 'r') as f:
     lines = f.readlines()
 for cur_line in lines:
     if "%" in cur_line:
@@ -17,21 +17,23 @@ for cur_line in lines:
     cur_name = cur_line.replace("\n", "")
     select_name.append(cur_name)
 
-batch = 30
+trail = 30
 all_score_results = []
 all_vote_results = []
 for name in select_name:
     cur_score_result = []
     cur_vote_results = []
     # cur_score_result.append(name)
-    FNCAE_args = {
+    FewSig_args = {
         "target_FPR": 0.01,
-        "LR": 0.02
+        "LR": 0.02,
+        "init_gpu_count": 0
     }
     data_path_args = {
-        "source": "/home/zhongs/btc_mount/Univariate_ts",
-        # "UAE_data": "/home/zhongs/btc_mount/UAE_TS/data_source"
-        "UAE_data": "/home/zhongs/sdm_results_backup/data_source"
+        "source": "/home/user/FewSig/Univariate_ts",
+        "UEA_data": "/home/user/FewSig/UEA_select",
+        "dist_core": 20,
+        "dist_batch_size": 2000
     }
     SSTSC_args = {
         "process_num": 1,
@@ -39,46 +41,46 @@ for name in select_name:
         "include_val_score": True
 
     }
-    wei = OnlineExp(name, data_path_args, "Wei", 5, batch, 3, FNCAE_args, select_check=False)
+    wei = OnlineExp(name, data_path_args, "Wei", 5, trail, 3)
     results = wei.start()
     wei_f1, wei_ave_f1 = wei.get_ave_final_F1()
 
-    fncae = OnlineExp(name, data_path_args, "FNCAE", 5, batch, 3, FNCAE_args, select_check=False)
-    results = fncae.start()
-    fncae_f1, fncae_ave_f1 = fncae.get_ave_final_F1()
+    fewsig = OnlineExp(name, data_path_args, "FewSig", 5, trail, 3, FewSig_args=FewSig_args, gpu_num=4, select_check=True)
+    results = fewsig.start()
+    fewsig_f1, fewsig_ave_f1 = fewsig.get_ave_final_F1()
 
-    fncae_f1_v1, fncae_ave_f1_v1 = fncae.get_ave_final_F1(1)
-    fncae_f1_v2, fncae_ave_f1_v2 = fncae.get_ave_final_F1(2)
-    fncae_f1_v3, fncae_ave_f1_v3 = fncae.get_ave_final_F1(3)
-    fncae_f1_v4, fncae_ave_f1_v4 = fncae.get_ave_final_F1(4)
-    fncae_f1_v5, fncae_ave_f1_v5 = fncae.get_ave_final_F1(5)
+    fewsig_f1_v1, fewsig_ave_f1_v1 = fewsig.get_ave_final_F1(1)
+    fewsig_f1_v2, fewsig_ave_f1_v2 = fewsig.get_ave_final_F1(2)
+    fewsig_f1_v3, fewsig_ave_f1_v3 = fewsig.get_ave_final_F1(3)
+    fewsig_f1_v4, fewsig_ave_f1_v4 = fewsig.get_ave_final_F1(4)
+    fewsig_f1_v5, fewsig_ave_f1_v5 = fewsig.get_ave_final_F1(5)
 
-    dtwd = OnlineExp(name, data_path_args, "DTWD", 5, batch, 3, FNCAE_args, select_check=False)
+    dtwd = OnlineExp(name, data_path_args, "DTWD", 5, trail, 3)
     results = dtwd.start()
     dtwd_f1, dtwd_ave_f1 = dtwd.get_ave_final_F1()
 
-    success = OnlineExp(name, data_path_args, "SUCCESS", 5, batch, 3, select_check=False)
+    success = OnlineExp(name, data_path_args, "SUCCESS", 5, trail, 3)
     results = success.start()
     success_f1, success_ave_f1 = success.get_ave_final_F1()
 
-    sstsc = OnlineExp(name, data_path_args, "SSTSC", 5, batch, 3, sstsc_args=SSTSC_args, gpu_num=1, select_check=False)
+    sstsc = OnlineExp(name, data_path_args, "SSTSC", 5, trail, 3, sstsc_args=SSTSC_args, gpu_num=1, select_check=False)
     if name == "SmoothSubspace":
         sstsc_f1 = 0
         sstsc_ave_f1 = 0
     else:
         results = sstsc.start()
         sstsc_f1, sstsc_ave_f1 = sstsc.get_ave_final_F1()
-    print(f"{name}, FNCAE: {fncae_ave_f1} wei: {wei_ave_f1} DTWD: {dtwd_ave_f1} SUCCESS: {success_ave_f1}, SSTSC: {sstsc_ave_f1}")
+    print(f"{name}, FewSig: {fewsig_ave_f1} wei: {wei_ave_f1} DTWD: {dtwd_ave_f1} SUCCESS: {success_ave_f1}, SSTSC: {sstsc_ave_f1}")
     cur_score_result.append(wei_ave_f1)
     cur_score_result.append(dtwd_ave_f1)
     cur_score_result.append(success_ave_f1)
     cur_score_result.append(sstsc_ave_f1)
-    cur_score_result.append(fncae_ave_f1)
-    cur_score_result.append(fncae_ave_f1_v1)
-    cur_score_result.append(fncae_ave_f1_v2)
-    cur_score_result.append(fncae_ave_f1_v3)
-    cur_score_result.append(fncae_ave_f1_v4)
-    cur_score_result.append(fncae_ave_f1_v5)
+    cur_score_result.append(fewsig_ave_f1)
+    cur_score_result.append(fewsig_ave_f1_v1)
+    cur_score_result.append(fewsig_ave_f1_v2)
+    cur_score_result.append(fewsig_ave_f1_v3)
+    cur_score_result.append(fewsig_ave_f1_v4)
+    cur_score_result.append(fewsig_ave_f1_v5)
 
     all_score_results.append(cur_score_result)
 
@@ -87,12 +89,12 @@ for i in range(len(select_name)):
     name = select_name[i]
     cur_score = all_score_results[i]
     print(
-        f"{name}, FNCAE: {cur_score[0]} wei: {cur_score[1]} DTWD: {cur_score[2]} SUCCESS: {cur_score[3]}, SSTSC: {cur_score[4]}" + os.linesep)
+        f"{name}, fewsig: {cur_score[0]} wei: {cur_score[1]} DTWD: {cur_score[2]} SUCCESS: {cur_score[3]}, SSTSC: {cur_score[4]}" + os.linesep)
 all_score_results = np.array(all_score_results)
 labels = ["FewSig", "Wei's_OL", "DTWD_OL", "SUCCESS_OL", "SSTSC_OL"]
 # print(f"Ave. {all_score_results[:,0].mean()},{all_score_results[:,1].mean()},{all_score_results[:,2].mean()},"
 #       f"{all_score_results[:,3].mean()},{all_score_results[:,4].mean()} ")
-# labels = ["FNCAE", "Wei", "DTWD"]
+# labels = ["fewsig", "Wei", "DTWD"]
 # fit = plt.figure()
 # plot_critical_difference(all_score_results, labels, cliques=None, is_errors=False, alpha=0.05, width=10, textspace=2.5, reverse=True,)
 

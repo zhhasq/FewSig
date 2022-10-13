@@ -21,7 +21,7 @@ from utils import scores
 '''
 
 
-class SSTSCUAEOL:
+class SSTSCUEAOL:
 
 
     @staticmethod

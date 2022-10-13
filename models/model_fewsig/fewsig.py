@@ -42,7 +42,6 @@ class FewSig:
     def evaluate(self, train_set, test_set, loader, log_path=None, record_time=False):
         gpu_count = self.gpu_count
         model = NCFAEnsemble(1, [x for x in range(1, 20)], self.nca_init_args, gpu_count, gpu_init_id=self.init_gpu_id)
-        # tmp_log = "/home/zhongs/synology_mnt/tmp_log6.log"
         assist_model = ATDT(self.DT_target_FPR, gpu_count, log_path, self.init_gpu_id)
         nca_ensemble_st = AssistantST3(model, assist_model, train_set, loader)
         # nca_ensemble_st = AssistantSTLoop(model, assist_model, train_3ch, dm)

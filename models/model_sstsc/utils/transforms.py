@@ -1,6 +1,10 @@
 import random
 import torch
 
+from models.model_sstsc.utils.augmentation import magnitude_warp_s, cut_piece2C, cut_piece3C, cut_piece4C, cut_piece6C, \
+    cut_piece5C, cut_piece8C, cut_piece7C, jitter, slidewindow, scaling_s, cutPF, cutout, time_warp_s, window_warp_s, \
+    window_slice_s
+
 
 class Raw:
     def __init__(self):

@@ -1,12 +1,14 @@
+import copy
+import time
+
 import numpy as np
 import torch
 
-from utils.log_utils import log
+from models.model_fewsig.ATDT.ATDT_LOO_torch import ATDTLOO
 from models.model_fewsig.ATDT.Neighbors_fast import NeighborsFast
 from models.model_fewsig.ATDT.Neighbors_fast2 import NeighborsFast2
-
-from models.model_fewsig.ATDT.ATDT_LOO_torch import ATDTLOO
 from utils import scores
+from utils.log_utils import log
 
 '''
 Difference to ExpDT is the threshold selection rule
@@ -185,8 +187,8 @@ class ATDT:
                        target_FPR):
 
         tpr_m, fpr_m = ATDT._gen_matrix_torch(device, train_labels, af_thresholds,
-                                              non_af_thresholds, nn_pair_dist_af,
-                                              nn_pair_dist_non_af, target_FPR)
+                                                       non_af_thresholds, nn_pair_dist_af,
+                                                       nn_pair_dist_non_af, target_FPR)
         # tmp = np.abs(fpr_m - target_FPR)
         tmp = torch.abs(torch.sub(fpr_m, target_FPR))
         # bsf_i = np.argmin(tmp, axis=

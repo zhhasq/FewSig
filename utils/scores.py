@@ -3,7 +3,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 
-def onine_scores_UAE(y_hat, test_labels):
+def onine_scores_UEA(y_hat, test_labels):
     time = [i+1 for i in range(len(y_hat))]
     tprs = []
     precisions = []

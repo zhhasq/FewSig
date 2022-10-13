@@ -6,31 +6,8 @@ from sktime.datasets import load_UCR_UEA_dataset, load_from_tsfile
 from exp_data_loader.metric import CorrSearchInfo, EuSearchInfo, DTWSearchInfo
 from exp_data_loader.train_test_dataset import TrainSet, TestSet
 
-class UAESelect:
-    @staticmethod
-    def get_select1(dist_code=None):
-        select_set = []
-        select_warp = []
-        with open(os.path.join(os.getcwd(), "exp_data", "UAE_select1.txt"), 'r') as f:
-            lines = f.readlines()
-        for cur_line in lines:
-            if "%" in cur_line:
-                continue
-            tmp = cur_line.split(',')
-            select_set.append(tmp[0])
-            select_warp.append(int(tmp[1]))
 
-        select_data = []
-        for name in select_set:
-            select_data.append(UAEUtils.get_UAE_data(name))
-
-        # dist_code = 'D-Q100-S100-W100'
-        if dist_code is not None:
-            for cur_data in select_data:
-                cur_data.get_dm(dist_code)
-        return select_data
-
-class UAELoader:
+class UEALoader:
     def __init__(self, name, path, ts_data, labels, id, ori_labels=None, num_process=20, batch=500):
         self.name = name
         self.data_dir = path
@@ -202,11 +179,11 @@ class UAELoader:
         test_set = TestSet(test_features, test_labels, test_id, -1, dist_info=None, test_ts_data=test_ts_data)
         return train_set, test_set
 
-class UAEUtils:
+class UEAUtils:
     @staticmethod
-    def load_UAE_from_disk(name, uts_source=None, verbose=True):
+    def load_UEA_from_disk(name, uts_source=None, verbose=True):
         if uts_source is None:
-            data_path = os.path.join("/home/zhongs/btc_mount/Univariate_ts", name)
+            data_path = os.path.join("/home/usr/fewsig_data/Univariate_ts", name)
         else:
             data_path = os.path.join(uts_source, name)
         if not os.path.exists(data_path):
@@ -223,7 +200,7 @@ class UAEUtils:
                     )
                     ts_data = np.vstack((train_x, test_x))
                     labels = np.concatenate((train_y, test_y))
-                    return UAEUtils.check_criteria2(name, ts_data, labels, verbose)
+                    return UEAUtils.check_criteria2(name, ts_data, labels, verbose)
                 except ValueError:
                     print(f"\tnot all series were of equal length")
                     return None
@@ -257,7 +234,7 @@ class UAEUtils:
             #
             #         ts_data = np.vstack((train_ts_data, test_ts_data))
             #         labels = np.concatenate((train_y, test_y))
-            #         return UAEUtils.check_criteria2(name, ts_data, labels)
+            #         return UEAUtils.check_criteria2(name, ts_data, labels)
             #
             #     except ValueError:
             #         print(f"\tnot all series were of equal length")
@@ -267,14 +244,14 @@ class UAEUtils:
                 return None
 
     @staticmethod
-    def load_UAE(name):
+    def load_UEA(name):
         try:
             X, y = load_UCR_UEA_dataset(name=name)
         except FileNotFoundError:
             print(f"\t{name} not exists")
             return None
-        # r = UAEUtils.check_criteria1(X, y)
-        r = UAEUtils.check_criteria2(X, y)
+        # r = UEAUtils.check_criteria1(X, y)
+        r = UEAUtils.check_criteria2(X, y)
         return r
 
     @staticmethod
@@ -382,15 +359,15 @@ class UAEUtils:
         return [ts_data, final_labels, labels]
 
     @staticmethod
-    def get_UAE_data(name, root, uts_source, num_process, batch):
+    def get_UEA_data(name, root, uts_source, num_process, batch):
         data_dir = os.path.join(root, name)
 
         'If data set not on the disk, use load_UCR_UEA_dataset to load the data'
         'else: load from disk'
 
         if not os.path.exists(os.path.join(data_dir,  "ts_data.npy")):
-            # r = UAEUtils.load_UAE(name)
-            r = UAEUtils.load_UAE_from_disk(name, uts_source)
+            # r = UEAUtils.load_UEA(name)
+            r = UEAUtils.load_UEA_from_disk(name, uts_source)
             if r is not None:
                 ts_data = r[0]
                 labels = r[1]
@@ -427,7 +404,7 @@ class UAEUtils:
             else:
                 return None
         else:
-            r = UAEUtils.load_UAE_from_disk(name, uts_source, verbose=False)
+            r = UEAUtils.load_UEA_from_disk(name, uts_source, verbose=False)
             ori_labels = r[2]
             # ori_labels = None
             tmp_data = r[0]
@@ -466,7 +443,7 @@ class UAEUtils:
             # if np.isnan(labels).any():
             #     # raise RuntimeError
             #     return None
-        return UAELoader(name, data_dir, ts_data, labels, id, non_nan_ori_labels, num_process, batch)
+        return UEALoader(name, data_dir, ts_data, labels, id, non_nan_ori_labels, num_process, batch)
 
 
     @staticmethod

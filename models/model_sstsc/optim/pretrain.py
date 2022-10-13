@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
+import torch
 
 import models.model_sstsc.utils.transforms as transforms
+from models.model_sstsc.dataloader.ucr2018 import UCR2018, MultiUCR2018
+from models.model_sstsc.model.model_RelationalReasoning import RelationalReasoning_SupInter
 from models.model_sstsc.model.model_backbone import SimConv4
 from torch.utils.data.sampler import SubsetRandomSampler
 

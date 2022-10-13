@@ -5,7 +5,7 @@ from models.model_fewsig.neighbors import Neighbors
 
 class ExpDistSelect:
     @staticmethod
-    def select_best_dist_code_UAE(data_loader, train_id, test_id, dist_code_list):
+    def select_best_dist_code_UEA(data_loader, train_id, test_id, dist_code_list):
         losses = []
 
         for cur_dist_code in dist_code_list:

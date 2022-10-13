@@ -9,12 +9,12 @@ import numpy as np
 import torch
 
 from exp_data_loader.train_test_dataset import TrainSet, TestSet
-from exp_data_loader.UAE_loader import UAEUtils
+from exp_data_loader.UEA_loader import UEAUtils
 
 from models.model_DTWD.dtwd_online import DTWDOL
 from models.model_fewsig.dist_select import ExpDistSelect
 from models.model_fewsig.fewsig import FewSig
-from models.model_sstsc.train_ssl_ol_UAE import SSTSCUAEOL
+from models.model_sstsc.train_ssl_ol_UEA import SSTSCUEAOL
 from models.model_success.success_online import SuccessOL
 from models.model_wei.wei_online import WeiOL
 from math import comb
@@ -192,15 +192,16 @@ class OnlineExp:
 
         return
 
+
     def __init__(self, data_name, data_path_args, algo_name, num_init_ps, batch, max_same=None,
-                 FNCA_arg=None, sstsc_args=None, gpu_num=1, loader=None, record_time=False, select_check=False):
+                 FewSig_args=None, sstsc_args=None, gpu_num=1, loader=None, record_time=False, select_check=False):
         print()
         print(f"******************** {data_name} ***************************")
         self.sstsc_args = sstsc_args
         self.split_max = 3000
         self.gpu_count = gpu_num
         self.data_name = data_name
-        self.UAE_root_path = data_path_args.get("UAE_data")
+        self.UEA_root_path = data_path_args.get("UEA_data")
         self.input_loader = loader
         self.record_time = record_time
         self.batch = batch
@@ -209,7 +210,7 @@ class OnlineExp:
         self.dist_core = data_path_args.get("dist_core")
         self.dist_batch_size = data_path_args.get("dist_batch_size")
         if loader is None:
-            self.data_load = UAEUtils.get_UAE_data(self.data_name, self.UAE_root_path, self.uts_source, self.dist_core, self.dist_batch_size)
+            self.data_load = UEAUtils.get_UEA_data(self.data_name, self.UEA_root_path, self.uts_source, self.dist_core, self.dist_batch_size)
             self.split = f"split_p{num_init_ps}"
             self.split_path = os.path.join(self.data_load.data_dir, self.split)
         else:
@@ -266,14 +267,14 @@ class OnlineExp:
             self.algo = SuccessOL()
             self.dist_code = 'D-Q100-S100-W0'
         elif self.algo_name == "SSTSC":
-            self.algo = SSTSCUAEOL()
+            self.algo = SSTSCUEAOL()
             self.dist_code = None
         elif self.algo_name == "FewSig":
-            if FNCA_arg is None:
+            if FewSig_args is None:
                 raise RuntimeError
-            target_FPR = FNCA_arg.get("target_FPR")
-            LR = FNCA_arg.get("LR")
-            init_gpu_id = FNCA_arg.get("init_gpu_count")
+            target_FPR = FewSig_args.get("target_FPR")
+            LR = FewSig_args.get("LR")
+            init_gpu_id = FewSig_args.get("init_gpu_count")
             if init_gpu_id is None:
                 init_gpu_id = 0
             self.algo = FewSig(target_FPR, LR, gpu_num, init_gpu_id)
@@ -312,9 +313,9 @@ class OnlineExp:
                         data_loader_dtw = copy.deepcopy(self.input_loader)
                         data_loader_eu = copy.deepcopy(self.input_loader)
                     else:
-                        data_loader_dtw = UAEUtils.get_UAE_data(self.data_name, self.UAE_root_path, self.uts_source)
+                        data_loader_dtw = UEAUtils.get_UEA_data(self.data_name, self.UEA_root_path, self.uts_source, self.dist_core, self.dist_batch_size)
 
-                        data_loader_eu = UAEUtils.get_UAE_data(self.data_name, self.UAE_root_path, self.uts_source)
+                        data_loader_eu = UEAUtils.get_UEA_data(self.data_name, self.UEA_root_path, self.uts_source, self.dist_core, self.dist_batch_size)
 
                     cur_train_dtw, cur_test_dtw = data_loader_dtw.get_train_test_from_id(self.dist_code_dtw,
                                                                                          cur_train_id,
@@ -343,8 +344,8 @@ class OnlineExp:
                         dist_code_list.append(f"D-Q100-S100-W{w}")
                     dist_code_list.append(f"E-Q100-S100")
 
-                    losses, min_loss, best_dist_code = ExpDistSelect.select_best_dist_code_UAE(self.data_load, cur_train_id, cur_test_id,
-                                                                                     dist_code_list)
+                    losses, min_loss, best_dist_code = ExpDistSelect.select_best_dist_code_UEA(self.data_load, cur_train_id, cur_test_id,
+                                                                                               dist_code_list)
                     # print(f"Best dist code: {best_dist_code}")
                     cur_train, cur_test = self.data_load.get_train_test_from_id(best_dist_code, cur_train_id,
                                                                                 cur_test_id)
@@ -566,32 +567,32 @@ class OnlineExp:
         setattr(opt, 'batch_size', batch)
         setattr(opt, 'model_name', "SemiInterOL")
         setattr(opt, 'label_ratio', -1)
+        sstsc_root = os.path.join(os.getcwd(), "SSTSC_dir")
+        if not os.path.exists(sstsc_root):
+            os.makedirs(sstsc_root)
+
         if addi_args.get("config_path") is None:
-            setattr(opt, 'config_dir',
-                    "/home/zhongs/corsair_mp600_2/project-repo/aftershock2/exp_model_comparsion/sstsc/config")
+            setattr(opt, 'config_dir', os.path.join(sstsc_root, "config"))
         else:
             setattr(opt, 'config_dir', addi_args.get("config_path"))
         if addi_args.get("ucr_path") is None:
-            setattr(opt, 'ucr_path',
-                    "/home/zhongs/corsair_mp600_2/project-repo/aftershock2/exp_model_comparsion/sstsc/datasets")
+            setattr(opt, 'ucr_path', os.path.join(sstsc_root, "datasets"))
         else:
             setattr(opt, 'ucr_path', addi_args.get("ucr_path"))
 
         if addi_args.get("ckpt_dir") is None:
-            setattr(opt, 'ckpt_dir',
-                    "/home/zhongs/corsair_mp600_2/project-repo/aftershock2/exp_model_comparsion/sstsc/ckpt")
+            setattr(opt, 'ckpt_dir', os.path.join(sstsc_root, "ckpt"))
         else:
             setattr(opt, 'ckpt_dir', addi_args.get("ckpt_dir"))
 
         if addi_args.get("log_path") is None:
-            log_path = "/home/zhongs/corsair_mp600_2/project-repo/aftershock2/exp_model_comparsion/sstsc/log"
+            log_path = os.path.join(sstsc_root, "log")
         else:
             log_path = addi_args.get("log_path")
 
-        setattr(opt, 'dataset_name', "Nepal_MKAR")
         setattr(opt, 'gpu', f"{gpu_num}")
         cuda_d = torch.device(f'cuda:{gpu_num}')
-        algo = SSTSCUAEOL()
+        algo = SSTSCUEAOL()
         cur_y_hat, val_score = algo.evaluate(opt, log_path, train_set, test_set, val_set)
         return cur_y_hat, test_set.get_labels()[-1], val_score
 
@@ -603,15 +604,18 @@ class OnlineExp:
             #     s = scores.score_pr(np.array(cur_r[0]), np.array(cur_r[1]))
             # else:
             if self.algo_name == "FewSig":
+                print(i)
                 if vote is None:
                     tmp = []
                     for i in range(1,5,1):
                         s = scores.score_pr(cur_r[i, :], cur_r[0, :])
+                        print(s)
                         tmp.append(s[-1])
                     f1_all.append(np.array(tmp).mean())
                 else:
                     tmp = []
                     s = scores.score_pr(cur_r[vote, :], cur_r[0, :])
+
                     tmp.append(s[-1])
                     f1_all.append(np.array(tmp).mean())
 

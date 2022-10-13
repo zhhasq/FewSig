@@ -1,9 +1,9 @@
 import os
 
-from exp_data_loader.UAE_loader import UAEUtils
+from exp_data_loader.UEA_loader import UEAUtils
 
 print(os.getcwd())
-with open(os.path.join(os.getcwd(), "exp_data", "UAE_REF.csv")) as f:
+with open(os.path.join(os.getcwd(), "exp_data", "UEA_REF.csv")) as f:
     lines = f.readlines()
 
 save_set = []
@@ -15,10 +15,10 @@ for line in lines:
         print("\t Drop reason: Too big dataset")
         continue
     name = tmp[0].replace("\ufeff", '')
-    r = UAEUtils.get_UAE_data(name)
+    r = UEAUtils.get_UEA_data(name)
     if r is not None:
         save_set.append(name)
 # #
-with open(os.path.join(os.getcwd(), "exp_data", "UAE_select2.txt"), 'w') as writer:
+with open(os.path.join(os.getcwd(), "exp_data", "UEA_select2.txt"), 'w') as writer:
     for x in save_set:
         writer.write(x + os.linesep)

@@ -35,7 +35,7 @@ class SuccessOL:
             'First do prediction'
             cur_test_id = test_set.get_ids()[i]
             cur_test_index = self.loader.get_index([cur_test_id])[0]
-            all_index = self.loader.get_index(new_train_set.get_arids())
+            all_index = self.loader.get_index(new_train_set.get_ids())
             cur_test = DM[cur_test_index, all_index]
             cur_y_hat = self.model.predict([cur_test])[0]
             y_hat.append(cur_y_hat)
