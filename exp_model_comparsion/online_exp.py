@@ -529,13 +529,16 @@ class OnlineExp:
 
                 y_hat = []
                 true_labels = []
-                val_scores = []
+                # val_scores = []
+                cur_val_scores = []
                 for j in tqdm(range(len(result_async))):
                     r = result_async[j].get()
                     # print(j, r, test_labels[1 + j])
                     y_hat.append(r[0])
                     true_labels.append(r[1])
-                    val_scores.append(r[2])
+                    cur_val_score = r[2]
+                    cur_val_scores.append(cur_val_score)
+                val_scores.append(np.array(cur_val_scores))
                 # cur_results = [new_test_labels[1:], y_hat, None]
                 for i in range(len(true_labels)):
                     if true_labels[i] != new_test_labels[i+1]:
@@ -544,7 +547,7 @@ class OnlineExp:
                 cur_results = np.array(cur_results)
                 np.save(cur_results_path, cur_results)
                 cur_val_results_path = os.path.join(self.resutls_path, f"{cur_exp_id}_val.npy")
-                np.save(cur_val_results_path, np.array(val_scores))
+                np.save(cur_val_results_path, np.array(cur_val_score))
             else:
                 cur_results = np.load(cur_results_path)
                 cur_val_scores = np.load(os.path.join(self.resutls_path, f"{cur_exp_id}_val.npy"))
