@@ -17,11 +17,8 @@ if __name__ == "__main__":
     """
 
     data_path_args = {
-        # "source": "/home/user/FewSig/Univariate_ts",
-        # "UEA_data": "/home/user/FewSig/UEA_select",
-        # "UEA_data": "/home/zhongs/sdm_results_backup/data_source",
-        "source": "/home/zhongs/btc_mount/Univariate_ts",
-        "UEA_data": "/home/zhongs/btc_mount/UAE_TS/data_source",
+        "source": "/home/user/FewSig/Univariate_ts",
+        "UEA_data": "/home/user/FewSig/UEA_select",
         "dist_core": 20,
         "dist_batch_size": 2000
     }
