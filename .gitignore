@@ -3,4 +3,5 @@
 .DS_Store
 .vs
 __pycache__
-./main_local_test.py
+main_local_test.py
+main_local_test2.py
