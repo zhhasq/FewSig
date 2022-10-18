@@ -19,3 +19,8 @@ The detail is available at  https://github.com/zhhasq/MASS3_FFTW
 
 ## Run FewSig
 The main.py contains instructions of how to config parameters and run FewSig.
+
+## Normalization
+We do normalization in two places:<br />
+1. Each time series sub-sequence is z-normalized before computing the similarity search distance. 
+2. The NCA transformed feature vectors are z-normalized prior to the softmax.
